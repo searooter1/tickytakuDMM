@@ -81,6 +81,7 @@ impl ModManager {
         Ok(destination)
     }
 
+    // removes a mod from the mod folder
     pub fn remove_mod(&mut self, index: usize) -> Result<(), String> {
         let Some(mod_file) = self.mods.get(index) else {
             return Err(String::from("Invalid mod index"));
