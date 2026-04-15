@@ -10,9 +10,12 @@ pub struct ModManager {
 }
 
 impl ModManager {
+
+    // Constructor, creates an instance of mod manager
     pub fn new() -> Self {
         let mut manager = Self::default();
 
+        // Gets mods files in mod folder via refresh, if fail then error
         if let Err(error) = manager.refresh() {
             eprintln!("Failed to load mods on startup: {error}");
         }
@@ -38,6 +41,7 @@ impl ModManager {
         let entries = fs::read_dir(&mods_dir)
             .map_err(|e| format!("Could not read mods folder: {e}"))?;
 
+        // Iterates over each entry in the mod files and puts them in the mods vector
         for entry in entries {
             let entry = entry.map_err(|e| format!("Could not read folder entry: {e}"))?;
             let path = entry.path();
@@ -55,6 +59,7 @@ impl ModManager {
         Ok(())
     }
 
+    // Add file to mod folder
     pub fn import_file(&mut self, source: &Path) -> Result<PathBuf, String> {
         let mods_dir = Self::mods_dir()?;
 
@@ -88,6 +93,7 @@ impl ModManager {
         Ok(())
     }
 
+    // Makes sure files in the mod folder have unique names
     fn unique_destination(mods_dir: &Path, file_name: &str) -> PathBuf {
         let initial = mods_dir.join(file_name);
 
