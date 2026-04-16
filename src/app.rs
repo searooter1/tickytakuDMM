@@ -36,6 +36,7 @@ impl App {
             Message::UploadMod => {
                 if let Some(path) = rfd::FileDialog::new()
                     .set_title("Select a mod file")
+                    .add_filter("Deadlock mod package", &["vpk"])
                     .pick_file()
                 {
                     match self.mod_manager.import_file(&path) {
