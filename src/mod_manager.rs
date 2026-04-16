@@ -10,6 +10,11 @@ pub struct ModManager {
 }
 
 impl ModManager {
+    fn is_vpk_file(path: &Path) -> bool {
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("vpk"))
+    }
 
     // Constructor, creates an instance of mod manager
     pub fn new() -> Self {
@@ -53,7 +58,15 @@ impl ModManager {
             }
         }
 
-        found_mods.sort_by(|a, b| a.file_name.to_lowercase().cmp(&b.file_name.to_lowercase()));
+        found_mods.sort_by(|a, b| {
+            match (
+                Self::parse_pak_index(&a.file_name),
+                Self::parse_pak_index(&b.file_name),
+            ) {
+                (Some(a_index), Some(b_index)) => a_index.cmp(&b_index),
+                _ => a.file_name.to_lowercase().cmp(&b.file_name.to_lowercase()),
+            }
+        });
 
         self.mods = found_mods;
         Ok(())
@@ -61,18 +74,16 @@ impl ModManager {
 
     // Add file to mod folder
     pub fn import_file(&mut self, source: &Path) -> Result<PathBuf, String> {
+        if !Self::is_vpk_file(source) {
+            return Err(String::from("Only .vpk files are supported"));
+        }
+
         let mods_dir = Self::mods_dir()?;
 
         fs::create_dir_all(&mods_dir)
             .map_err(|e| format!("Could not create mods folder: {e}"))?;
 
-        let file_name = source
-            .file_name()
-            .ok_or_else(|| String::from("Selected file has no valid name"))?
-            .to_string_lossy()
-            .to_string();
-
-        let destination = Self::unique_destination(&mods_dir, &file_name);
+        let destination = Self::next_pak_destination(&mods_dir);
 
         fs::copy(source, &destination)
             .map_err(|e| format!("Could not copy file: {e}"))?;
@@ -94,33 +105,46 @@ impl ModManager {
         Ok(())
     }
 
-    // Makes sure files in the mod folder have unique names
-    fn unique_destination(mods_dir: &Path, file_name: &str) -> PathBuf {
-        let initial = mods_dir.join(file_name);
+    // Uses Deadlock-style naming: pak01_000.vpk, pak01_001.vpk, ...
+    fn next_pak_destination(mods_dir: &Path) -> PathBuf {
+        let mut used_indexes = Vec::new();
 
-        if !initial.exists() {
-            return initial;
-        }
+        if let Ok(entries) = fs::read_dir(mods_dir) {
+            for entry in entries.flatten() {
+                let file_name = entry.file_name();
+                let file_name = file_name.to_string_lossy();
 
-        let source_path = Path::new(file_name);
-        let stem = source_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("mod");
-        let ext = source_path.extension().and_then(|s| s.to_str());
-
-        let mut i = 1;
-        loop {
-            let candidate = match ext {
-                Some(ext) => mods_dir.join(format!("{stem}_{i}.{ext}")),
-                None => mods_dir.join(format!("{stem}_{i}")),
-            };
-
-            if !candidate.exists() {
-                return candidate;
+                if let Some(index) = Self::parse_pak_index(&file_name) {
+                    used_indexes.push(index);
+                }
             }
-
-            i += 1;
         }
+
+        used_indexes.sort_unstable();
+        used_indexes.dedup();
+
+        let mut next_index = 0;
+        for used_index in used_indexes {
+            if used_index == next_index {
+                next_index += 1;
+            } else if used_index > next_index {
+                break;
+            }
+        }
+
+        mods_dir.join(format!("pak01_{next_index:03}.vpk"))
+    }
+
+    fn parse_pak_index(file_name: &str) -> Option<u32> {
+        let lower = file_name.to_ascii_lowercase();
+        let index_text = lower
+            .strip_prefix("pak01_")?
+            .strip_suffix(".vpk")?;
+
+        if index_text.len() != 3 || !index_text.chars().all(|c| c.is_ascii_digit()) {
+            return None;
+        }
+
+        index_text.parse::<u32>().ok()
     }
 }
