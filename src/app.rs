@@ -1,25 +1,17 @@
 use iced::Element;
 
+use crate::message::{
+    ImportModAction, ImportModMessage, Message, ModListAction, ModListMessage,
+};
 use crate::mod_manager::ModManager;
-use crate::pages::{import_mod, mod_list};
+use crate::state::{AppState, ImportModState, ModListState, Page};
+use crate::update::{import_mod as import_mod_update, mod_list as mod_list_update};
+use crate::view::{import_mod as import_mod_view, mod_list as mod_list_view};
 
 #[derive(Debug)]
 pub struct App {
     mod_manager: ModManager,
-    status: String,
-    page: Page,
-}
-
-#[derive(Debug)]
-enum Page {
-    ModList(mod_list::State),
-    ImportMod(import_mod::State),
-}
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    ModList(mod_list::Message),
-    ImportMod(import_mod::Message),
+    state: AppState,
 }
 
 impl Default for App {
@@ -33,8 +25,10 @@ impl Default for App {
 
         Self {
             mod_manager,
-            status,
-            page: Page::ModList(mod_list::State),
+            state: AppState {
+                status,
+                page: Page::ModList(ModListState),
+            },
         }
     }
 }
@@ -47,73 +41,77 @@ impl App {
         }
     }
 
-    fn update_mod_list(&mut self, message: mod_list::Message) {
-        if let Page::ModList(state) = &mut self.page {
-            state.update(message.clone());
-        }
+    fn update_mod_list(&mut self, message: ModListMessage) {
+        if let Page::ModList(state) = &mut self.state.page {
+            let action = mod_list_update::update(state, message);
 
-        match message {
-            mod_list::Message::StartUpload => {
-                if let Some(path) = rfd::FileDialog::new()
-                    .set_title("Select a mod file")
-                    .add_filter("Deadlock mod package", &["vpk"])
-                    .pick_file()
-                {
-                    self.page = Page::ImportMod(import_mod::State::new(path));
-                    self.status = String::from("Fill out the mod details, then save.");
-                } else {
-                    self.status = String::from("File selection cancelled");
+            match action {
+                None => {}
+
+                Some(ModListAction::StartUploadRequested) => {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .set_title("Select a mod file")
+                        .add_filter("Deadlock mod package", &["vpk"])
+                        .pick_file()
+                    {
+                        self.state.page = Page::ImportMod(ImportModState::new(path));
+                        self.state.status =
+                            String::from("Fill out the mod details, then save.");
+                    } else {
+                        self.state.status = String::from("File selection cancelled");
+                    }
+                }
+
+                Some(ModListAction::RefreshRequested) => match self.mod_manager.refresh() {
+                    Ok(()) => {
+                        self.state.status = String::from("Mod list refreshed");
+                    }
+                    Err(error) => {
+                        self.state.status = format!("Refresh failed: {error}");
+                    }
+                },
+
+                Some(ModListAction::RemoveRequested(index)) => {
+                    match self.mod_manager.remove_mod(index) {
+                        Ok(()) => {
+                            self.state.status = String::from("Mod removed");
+                        }
+                        Err(error) => {
+                            self.state.status = format!("Remove failed: {error}");
+                        }
+                    }
                 }
             }
-
-            mod_list::Message::Refresh => match self.mod_manager.refresh() {
-                Ok(()) => {
-                    self.status = String::from("Mod list refreshed");
-                }
-                Err(error) => {
-                    self.status = format!("Refresh failed: {error}");
-                }
-            },
-
-            mod_list::Message::RemoveMod(index) => match self.mod_manager.remove_mod(index) {
-                Ok(()) => {
-                    self.status = String::from("Mod removed");
-                }
-                Err(error) => {
-                    self.status = format!("Remove failed: {error}");
-                }
-            },
         }
     }
 
-    fn update_import_mod(&mut self, message: import_mod::Message) {
+    fn update_import_mod(&mut self, message: ImportModMessage) {
         let mut next_page: Option<Page> = None;
 
-        if let Page::ImportMod(state) = &mut self.page {
-            match &message {
-                import_mod::Message::TitleChanged(_)
-                | import_mod::Message::DescriptionChanged(_) => {
-                    state.update(message.clone());
-                }
+        if let Page::ImportMod(state) = &mut self.state.page {
+            let action = import_mod_update::update(state, message);
 
-                import_mod::Message::PickThumbnail => {
+            match action {
+                None => {}
+
+                Some(ImportModAction::PickThumbnailRequested) => {
                     if let Some(path) = rfd::FileDialog::new()
                         .set_title("Select a thumbnail image")
                         .add_filter("Image", &["png", "jpg", "jpeg", "webp"])
                         .pick_file()
                     {
                         state.thumbnail_path = Some(path.clone());
-                        self.status = format!("Selected thumbnail: {}", path.display());
+                        self.state.status = format!("Selected thumbnail: {}", path.display());
                     } else {
-                        self.status = String::from("Thumbnail selection cancelled");
+                        self.state.status = String::from("Thumbnail selection cancelled");
                     }
                 }
 
-                import_mod::Message::Save => {
+                Some(ImportModAction::SaveRequested) => {
                     let trimmed_title = state.trimmed_title();
 
                     if trimmed_title.is_empty() {
-                        self.status = String::from("Title is required");
+                        self.state.status = String::from("Title is required");
                         return;
                     }
 
@@ -126,33 +124,38 @@ impl App {
                         state.thumbnail_path.as_deref(),
                     ) {
                         Ok(saved_path) => {
-                            self.status = format!("Imported to {}", saved_path.display());
-                            next_page = Some(Page::ModList(mod_list::State));
+                            self.state.status = format!("Imported to {}", saved_path.display());
+                            next_page = Some(Page::ModList(ModListState));
                         }
                         Err(error) => {
-                            self.status = format!("Import failed: {error}");
+                            self.state.status = format!("Import failed: {error}");
                         }
                     }
                 }
 
-                import_mod::Message::Cancel => {
-                    self.status = String::from("Import cancelled");
-                    next_page = Some(Page::ModList(mod_list::State));
+                Some(ImportModAction::CancelRequested) => {
+                    self.state.status = String::from("Import cancelled");
+                    next_page = Some(Page::ModList(ModListState));
                 }
             }
         }
 
         if let Some(page) = next_page {
-            self.page = page;
+            self.state.page = page;
         }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        match &self.page {
-            Page::ModList(state) => state
-                .view(&self.mod_manager.mods, &self.status)
+        match &self.state.page {
+            Page::ModList(state) => mod_list_view::view(
+                state,
+                &self.mod_manager.mods,
+                &self.state.status,
+            )
                 .map(Message::ModList),
-            Page::ImportMod(state) => state.view(&self.status).map(Message::ImportMod),
+
+            Page::ImportMod(state) => import_mod_view::view(state, &self.state.status)
+                .map(Message::ImportMod),
         }
     }
 }
