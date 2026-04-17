@@ -2,7 +2,7 @@ use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Element, Fill};
 
 use crate::components::mod_card;
-use crate::message::ModListMessage;
+use crate::message::Message;
 use crate::mod_file::ModFile;
 use crate::state::ModListState;
 
@@ -10,10 +10,10 @@ pub fn view<'a>(
     _state: &'a ModListState,
     mods: &'a [ModFile],
     status: &'a str,
-) -> Element<'a, ModListMessage> {
+) -> Element<'a, Message> {
     let controls = row![
-        button("Upload Mod").on_press(ModListMessage::StartUpload),
-        button("Refresh").on_press(ModListMessage::Refresh),
+        button("Upload Mod").on_press(Message::ModListStartUpload),
+        button("Refresh").on_press(Message::ModListRefresh),
     ]
         .spacing(10);
 
@@ -23,7 +23,10 @@ pub fn view<'a>(
         mods.iter()
             .enumerate()
             .fold(column![].spacing(15), |column, (index, mod_file)| {
-                column.push(mod_card::view(mod_file, ModListMessage::RemoveMod(index)))
+                column.push(mod_card::view(
+                    mod_file,
+                    Message::ModListRemoveMod(index),
+                ))
             })
     };
 

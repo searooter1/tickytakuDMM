@@ -1,35 +1,17 @@
+//! All application events (Iced messages): everything the UI or shell can report
+//! into `update` lives in [`Message`].
+
 #[derive(Debug, Clone)]
 pub enum Message {
-    ModList(ModListMessage),
-    ImportMod(ImportModMessage),
-}
+    // —— Mod list screen ——
+    ModListStartUpload,
+    ModListRefresh,
+    ModListRemoveMod(usize),
 
-#[derive(Debug, Clone)]
-pub enum ModListMessage {
-    StartUpload,
-    Refresh,
-    RemoveMod(usize),
-}
-
-#[derive(Debug, Clone)]
-pub enum ImportModMessage {
-    TitleChanged(String),
-    DescriptionChanged(String),
-    PickThumbnail,
-    Save,
-    Cancel,
-}
-
-#[derive(Debug, Clone)]
-pub enum ModListAction {
-    StartUploadRequested,
-    RefreshRequested,
-    RemoveRequested(usize),
-}
-
-#[derive(Debug, Clone)]
-pub enum ImportModAction {
-    PickThumbnailRequested,
-    SaveRequested,
-    CancelRequested,
+    // —— Import mod screen ——
+    ImportTitleChanged(String),
+    ImportDescriptionChanged(String),
+    ImportPickThumbnail,
+    ImportSave,
+    ImportCancel,
 }
