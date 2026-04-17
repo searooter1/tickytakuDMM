@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
-use iced::widget::{button, column, container, image, row, text, text_input};
-use iced::{Element, Fill, Length};
+use iced::widget::{button, column, container, row, text, text_input};
+use iced::{Element, Fill};
+
+use crate::components::thumbnail;
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -69,14 +71,8 @@ impl State {
             .map(|path| format!("Selected thumbnail: {}", path.display()))
             .unwrap_or_else(|| String::from("No thumbnail selected"));
 
-        let thumbnail_preview: Element<'a, Message> = if let Some(path) = &self.thumbnail_path {
-            image(path.clone())
-                .width(Length::Fixed(120.0))
-                .height(Length::Fixed(120.0))
-                .into()
-        } else {
-            text("No thumbnail selected").size(14).into()
-        };
+        let thumbnail_preview =
+            thumbnail::view(self.thumbnail_path.as_ref(), 120.0, 120.0, "No thumbnail selected");
 
         container(
             column![

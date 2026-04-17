@@ -1,4 +1,5 @@
 mod app;
+mod components;
 mod mod_file;
 mod mod_manager;
 mod pages;
