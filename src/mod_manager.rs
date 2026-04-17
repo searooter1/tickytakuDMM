@@ -14,13 +14,8 @@ pub struct ModManager {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ModMetadata {
-    // Stable internal ID for metadata tracking
     id: Uuid,
-
-    // Actual stored filename on disk, like pak01_000.vpk
     file_name: String,
-
-    // User-facing fields
     title: String,
     description: Option<String>,
     thumbnail_path: Option<PathBuf>,
@@ -149,7 +144,6 @@ impl ModManager {
                         thumbnail_path: metadata.thumbnail_path.clone(),
                     });
                 } else {
-                    // Fallback if metadata is missing
                     found_mods.push(ModFile {
                         file_name: file_name.clone(),
                         path,
