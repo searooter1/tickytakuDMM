@@ -251,6 +251,73 @@ impl ModManager {
         Ok(())
     }
 
+    pub fn update_mod_entry(
+        &mut self,
+        index: usize,
+        title: String,
+        description: Option<String>,
+        thumbnail_path: Option<PathBuf>,
+        original_thumbnail_path: Option<PathBuf>,
+    ) -> Result<(), String> {
+        let Some(mod_file) = self.mods.get(index) else {
+            return Err(String::from("Invalid mod index"));
+        };
+
+        let file_name = mod_file.file_name.clone();
+        Self::ensure_directories()?;
+
+        let final_thumbnail = if thumbnail_path == original_thumbnail_path {
+            thumbnail_path.clone()
+        } else if thumbnail_path.is_none() {
+            if let Some(ref old) = original_thumbnail_path {
+                if old.exists() {
+                    let _ = fs::remove_file(old);
+                }
+            }
+            None
+        } else {
+            let selected = thumbnail_path.as_ref().unwrap();
+
+            if !Self::is_supported_thumbnail_file(selected) {
+                return Err(String::from(
+                    "Thumbnail must be a .png, .jpg, .jpeg, or .webp file",
+                ));
+            }
+
+            let new_path = Self::copy_thumbnail(selected)?;
+
+            if let Some(ref old) = original_thumbnail_path {
+                if old != &new_path && old.exists() {
+                    let _ = fs::remove_file(old);
+                }
+            }
+
+            Some(new_path)
+        };
+
+        let mut metadata_map = Self::load_metadata_map()?;
+
+        let id = metadata_map
+            .get(&file_name)
+            .map(|entry| entry.id)
+            .unwrap_or_else(Uuid::new_v4);
+
+        metadata_map.insert(
+            file_name.clone(),
+            ModMetadata {
+                id,
+                file_name: file_name.clone(),
+                title,
+                description,
+                thumbnail_path: final_thumbnail,
+            },
+        );
+
+        Self::save_metadata_map(&metadata_map)?;
+        self.refresh()?;
+        Ok(())
+    }
+
     fn copy_thumbnail(source: &Path) -> Result<PathBuf, String> {
         let thumbnails_dir = Self::thumbnails_dir()?;
 

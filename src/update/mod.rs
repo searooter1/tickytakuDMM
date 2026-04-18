@@ -1,4 +1,4 @@
-mod import_mod;
+mod mod_details;
 mod mod_list;
 
 use crate::message::Message;
@@ -9,12 +9,14 @@ pub fn update(mod_manager: &mut ModManager, state: &mut AppState, message: Messa
     match message {
         Message::ModListStartUpload
         | Message::ModListRefresh
-        | Message::ModListRemoveMod(_) => mod_list::update(mod_manager, state, message),
+        | Message::ModListRemoveMod(_)
+        | Message::ModListEditMod(_) => mod_list::update(mod_manager, state, message),
 
-        Message::ImportTitleChanged(_)
-        | Message::ImportDescriptionChanged(_)
-        | Message::ImportPickThumbnail
-        | Message::ImportSave
-        | Message::ImportCancel => import_mod::update(mod_manager, state, message),
+        Message::ModDetailsTitleChanged(_)
+        | Message::ModDetailsDescriptionChanged(_)
+        | Message::ModDetailsPickThumbnail
+        | Message::ModDetailsClearThumbnail
+        | Message::ModDetailsSave
+        | Message::ModDetailsCancel => mod_details::update(mod_manager, state, message),
     }
 }

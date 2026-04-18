@@ -4,7 +4,7 @@ use crate::message::Message;
 use crate::mod_manager::ModManager;
 use crate::state::{AppState, ModListState, Page};
 use crate::update;
-use crate::view::{import_mod as import_mod_view, mod_list as mod_list_view};
+use crate::view::{mod_details as mod_details_view, mod_list as mod_list_view};
 
 #[derive(Debug)]
 pub struct App {
@@ -42,7 +42,7 @@ impl App {
                 mod_list_view::view(state, &self.mod_manager.mods, &self.state.status)
             }
 
-            Page::ImportMod(state) => import_mod_view::view(state, &self.state.status),
+            Page::ModDetails(state) => mod_details_view::view(state, &self.state.status),
         }
     }
 }
