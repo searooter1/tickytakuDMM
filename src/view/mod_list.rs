@@ -25,6 +25,7 @@ pub fn view<'a>(
             .fold(column![].spacing(15), |column, (index, mod_file)| {
                 column.push(mod_card::view(
                     mod_file,
+                    Message::ModListEditMod(index),
                     Message::ModListRemoveMod(index),
                 ))
             })

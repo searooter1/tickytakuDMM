@@ -6,6 +6,7 @@ use crate::mod_file::ModFile;
 
 pub fn view<'a, Message: Clone + 'a>(
     mod_file: &'a ModFile,
+    on_edit: Message,
     on_remove: Message,
 ) -> Element<'a, Message> {
     let description_text = mod_file.description.as_deref().unwrap_or("No description");
@@ -18,6 +19,7 @@ pub fn view<'a, Message: Clone + 'a>(
             column![
                 row![
                     text(&mod_file.title).size(22).width(Fill),
+                    button("Edit").on_press(on_edit),
                     button("Remove").on_press(on_remove),
                 ]
                 .spacing(10),

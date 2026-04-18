@@ -7,11 +7,13 @@ pub enum Message {
     ModListStartUpload,
     ModListRefresh,
     ModListRemoveMod(usize),
+    ModListEditMod(usize),
 
-    // —— Import mod screen ——
-    ImportTitleChanged(String),
-    ImportDescriptionChanged(String),
-    ImportPickThumbnail,
-    ImportSave,
-    ImportCancel,
+    // —— Add / edit mod (shared form) ——
+    ModDetailsTitleChanged(String),
+    ModDetailsDescriptionChanged(String),
+    ModDetailsPickThumbnail,
+    ModDetailsClearThumbnail,
+    ModDetailsSave,
+    ModDetailsCancel,
 }

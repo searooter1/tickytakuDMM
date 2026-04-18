@@ -9,33 +9,65 @@ pub struct AppState {
 #[derive(Debug)]
 pub enum Page {
     ModList(ModListState),
-    ImportMod(ImportModState),
+    ModDetails(ModDetailsState),
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct ModListState;
 
+/// Add a new mod (copy VPK) vs change metadata for an installed mod.
 #[derive(Debug, Clone)]
-pub struct ImportModState {
-    pub mod_path: PathBuf,
+pub enum ModDetailsMode {
+    Import {
+        source_path: PathBuf,
+    },
+    Edit {
+        mod_index: usize,
+        file_name: String,
+        original_thumbnail_path: Option<PathBuf>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct ModDetailsState {
+    pub mode: ModDetailsMode,
     pub title: String,
     pub description: String,
     pub thumbnail_path: Option<PathBuf>,
 }
 
-impl ImportModState {
-    pub fn new(mod_path: PathBuf) -> Self {
-        let title = mod_path
+impl ModDetailsState {
+    pub fn import(source_path: PathBuf) -> Self {
+        let title = source_path
             .file_stem()
             .and_then(|name| name.to_str())
             .unwrap_or("New Mod")
             .to_string();
 
         Self {
-            mod_path,
+            mode: ModDetailsMode::Import { source_path },
             title,
             description: String::new(),
             thumbnail_path: None,
+        }
+    }
+
+    pub fn edit(
+        mod_index: usize,
+        file_name: String,
+        title: String,
+        description: String,
+        thumbnail_path: Option<PathBuf>,
+    ) -> Self {
+        Self {
+            mode: ModDetailsMode::Edit {
+                mod_index,
+                file_name,
+                original_thumbnail_path: thumbnail_path.clone(),
+            },
+            title,
+            description,
+            thumbnail_path,
         }
     }
 
