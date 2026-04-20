@@ -9,6 +9,8 @@ pub fn update(mod_manager: &mut ModManager, state: &mut AppState, message: Messa
     match message {
         Message::ModListStartUpload
         | Message::ModListRefresh
+        | Message::ModListEnableMod(_)
+        | Message::ModListDisableMod(_)
         | Message::ModListRemoveMod(_)
         | Message::ModListEditMod(_) => mod_list::update(mod_manager, state, message),
 

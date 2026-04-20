@@ -6,6 +6,8 @@ pub enum Message {
     // —— Mod list screen ——
     ModListStartUpload,
     ModListRefresh,
+    ModListEnableMod(usize),
+    ModListDisableMod(usize),
     ModListRemoveMod(usize),
     ModListEditMod(usize),
 

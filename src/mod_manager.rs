@@ -1,6 +1,7 @@
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -251,6 +252,43 @@ impl ModManager {
         Ok(())
     }
 
+    pub fn enable_mod(&mut self, index: usize) -> Result<PathBuf, String> {
+        let Some(mod_file) = self.mods.get(index) else {
+            return Err(String::from("Invalid mod index"));
+        };
+
+        let source_path = mod_file.path.clone();
+        let file_name = mod_file.file_name.clone();
+        let addons_dir = Self::resolve_deadlock_addons_dir()?;
+
+        fs::create_dir_all(&addons_dir)
+            .map_err(|e| format!("Could not create Deadlock addons folder: {e}"))?;
+
+        let destination = addons_dir.join(file_name);
+
+        fs::copy(&source_path, &destination)
+            .map_err(|e| format!("Could not copy .vpk into Deadlock addons: {e}"))?;
+
+        Ok(destination)
+    }
+
+    pub fn disable_mod(&mut self, index: usize) -> Result<(), String> {
+        let Some(mod_file) = self.mods.get(index) else {
+            return Err(String::from("Invalid mod index"));
+        };
+
+        let file_name = mod_file.file_name.clone();
+        let addons_dir = Self::resolve_deadlock_addons_dir()?;
+        let destination = addons_dir.join(file_name);
+
+        if destination.exists() {
+            fs::remove_file(&destination)
+                .map_err(|e| format!("Could not remove .vpk from Deadlock addons: {e}"))?;
+        }
+
+        Ok(())
+    }
+
     pub fn update_mod_entry(
         &mut self,
         index: usize,
@@ -375,5 +413,53 @@ impl ModManager {
         }
 
         index_text.parse::<u32>().ok()
+    }
+
+    fn resolve_deadlock_addons_dir() -> Result<PathBuf, String> {
+        if let Some(install_dir) = Self::find_deadlock_install_dir() {
+            return Ok(install_dir.join("game").join("citadel").join("addons"));
+        }
+
+        Err(String::from(
+            "Could not find Deadlock install folder under any Steam library. Make sure Deadlock is installed in a Steam library.",
+        ))
+    }
+
+    fn find_deadlock_install_dir() -> Option<PathBuf> {
+        for candidate in Self::deadlock_install_candidates() {
+            if candidate.exists() {
+                return Some(candidate);
+            }
+        }
+
+        None
+    }
+
+    fn deadlock_install_candidates() -> Vec<PathBuf> {
+        let mut roots = Vec::new();
+
+        if let Ok(program_files_x86) = env::var("ProgramFiles(x86)") {
+            roots.push(PathBuf::from(program_files_x86).join("Steam"));
+        }
+
+        if let Ok(program_files) = env::var("ProgramFiles") {
+            roots.push(PathBuf::from(program_files).join("Steam"));
+        }
+
+        for drive in 'A'..='Z' {
+            roots.push(PathBuf::from(format!("{drive}:\\Steam")));
+            roots.push(PathBuf::from(format!("{drive}:\\SteamLibrary")));
+        }
+
+        let mut candidates = Vec::new();
+        for root in roots {
+            candidates.push(
+                root.join("steamapps")
+                    .join("common")
+                    .join("Deadlock"),
+            );
+        }
+
+        candidates
     }
 }
