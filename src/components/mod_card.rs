@@ -6,6 +6,8 @@ use crate::mod_file::ModFile;
 
 pub fn view<'a, Message: Clone + 'a>(
     mod_file: &'a ModFile,
+    on_enable: Message,
+    on_disable: Message,
     on_edit: Message,
     on_remove: Message,
 ) -> Element<'a, Message> {
@@ -19,6 +21,8 @@ pub fn view<'a, Message: Clone + 'a>(
             column![
                 row![
                     text(&mod_file.title).size(22).width(Fill),
+                    button("Enable").on_press(on_enable),
+                    button("Disable").on_press(on_disable),
                     button("Edit").on_press(on_edit),
                     button("Remove").on_press(on_remove),
                 ]

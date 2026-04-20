@@ -30,6 +30,24 @@ pub(super) fn update(mod_manager: &mut ModManager, state: &mut AppState, message
             }
         },
 
+        Message::ModListEnableMod(index) => match mod_manager.enable_mod(index) {
+            Ok(path) => {
+                state.status = format!("Mod enabled: copied to {}", path.display());
+            }
+            Err(error) => {
+                state.status = format!("Enable failed: {error}");
+            }
+        },
+
+        Message::ModListDisableMod(index) => match mod_manager.disable_mod(index) {
+            Ok(()) => {
+                state.status = String::from("Mod disabled: removed from Deadlock addons");
+            }
+            Err(error) => {
+                state.status = format!("Disable failed: {error}");
+            }
+        },
+
         Message::ModListRemoveMod(index) => match mod_manager.remove_mod(index) {
             Ok(()) => {
                 state.status = String::from("Mod removed");
