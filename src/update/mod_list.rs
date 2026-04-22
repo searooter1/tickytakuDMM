@@ -73,6 +73,24 @@ pub(super) fn update(mod_manager: &mut ModManager, state: &mut AppState, message
                 mod_file.thumbnail_path.clone(),
             ));
             state.status = String::from("Edit mod details, then save.");
+        }
+
+        Message::ModListMoveModUp(index) => match mod_manager.move_mod_up(index) {
+            Ok(()) => {
+                state.status = String::from("Moved up (higher load priority).");
+            }
+            Err(error) => {
+                state.status = format!("Move failed: {error}");
+            }
+        },
+
+        Message::ModListMoveModDown(index) => match mod_manager.move_mod_down(index) {
+            Ok(()) => {
+                state.status = String::from("Moved down (lower load priority).");
+            }
+            Err(error) => {
+                state.status = format!("Move failed: {error}");
+            }
         },
 
         _ => {}
