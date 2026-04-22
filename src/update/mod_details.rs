@@ -57,7 +57,7 @@ pub(super) fn update(mod_manager: &mut ModManager, state: &mut AppState, message
                     ) {
                         Ok(saved_path) => {
                             state.status = format!("Imported to {}", saved_path.display());
-                            state.page = Page::ModList(ModListState);
+                            state.page = Page::ModList(ModListState::default());
                         }
                         Err(error) => {
                             state.status = format!("Import failed: {error}");
@@ -78,7 +78,7 @@ pub(super) fn update(mod_manager: &mut ModManager, state: &mut AppState, message
                 ) {
                     Ok(()) => {
                         state.status = String::from("Mod updated");
-                        state.page = Page::ModList(ModListState);
+                        state.page = Page::ModList(ModListState::default());
                     }
                     Err(error) => {
                         state.status = format!("Save failed: {error}");
@@ -92,7 +92,7 @@ pub(super) fn update(mod_manager: &mut ModManager, state: &mut AppState, message
                 ModDetailsMode::Import { .. } => String::from("Import cancelled"),
                 ModDetailsMode::Edit { .. } => String::from("Edit cancelled"),
             };
-            state.page = Page::ModList(ModListState);
+            state.page = Page::ModList(ModListState::default());
         }
 
         _ => {}
