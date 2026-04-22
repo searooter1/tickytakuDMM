@@ -1,0 +1,37 @@
+# .github/workflows/release.yml
+name: Build and Release Windows
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Package exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item "target\release\tickytakuDMM.exe" "dist\tickytakuDMM.exe"
+          Compress-Archive -Path "dist\tickytakuDMM.exe" -DestinationPath "tickytakuDMM-windows-x86_64.zip"
+
+      - name: Create release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: tickytakuDMM-windows-x86_64.zip
+          generate_release_notes: true
